@@ -12,6 +12,12 @@ from django.contrib.auth.decorators import login_required
 from decimal import Decimal
 
 
+import io
+from xhtml2pdf import pisa
+from django.template.loader import get_template
+from django.template import Context
+
+
 def home(request):
     if request.user.is_authenticated:
         return render(request, 'myapp/home.html')
@@ -157,3 +163,32 @@ def success(request):
     context = {}
     context['user'] = request.user
     return render(request, 'myapp/success.html', context)
+
+def render_to_pdf(template_src, context_dict):
+    template = get_template(template_src)
+    html  = template.render(context_dict)
+    result = io.BytesIO()
+    pdf = pisa.pisaDocument(io.BytesIO(html.encode("ISO-8859-1")), result)
+    if not pdf.err:
+        return HttpResponse(result.getvalue(), content_type='application/pdf')
+    return
+
+
+def download_pdf_view(request,pk):
+    book = Book.objects.filter(id=pk)
+    print(book)
+    #dischargeDetails=models.PatientDischargeDetails.objects.all().filter(patientId=pk).order_by('-id')[:1]
+    dict={
+
+        'id':book[0].busid,
+        'busname':book[0].bus_name,
+        'tag':book[0].bus,
+        'serialno':book[0].source,
+        'location':book[0].dest,
+        'issuedescription':book[0].price,
+        'assignedengineer':book[0].id,
+        'issueraisedon':book[0].id,
+        'issuesolvedon':book[0].id,
+        'comments':book[0].id,
+    }
+    return render_to_pdf('myapp/download_bill.html',dict)    
